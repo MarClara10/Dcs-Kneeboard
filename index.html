@@ -1,129 +1,107 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Galerie & Notizen</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <style>
-        :root { --yellow: #fff59d; --line: #e0d58a; }
-        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; overflow: hidden; }
-        
-        /* Galerie */
-        .swiper { width: 100%; height: 100%; }
-        .swiper-slide { display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
-        .swiper-slide img { max-width: 100%; max-height: 90%; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .img-label { margin-top: 10px; font-size: 14px; opacity: 0.6; }
-
-        /* Gelber Button */
-        #note-trigger {
-            position: fixed; bottom: 30px; right: 30px;
-            width: 65px; height: 65px; background: #ffd600;
-            border-radius: 50%; display: flex; justify-content: center;
-            align-items: center; cursor: pointer; z-index: 1000;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4); font-size: 30px;
-        }
-
-        /* Notiz-Overlay */
-        #note-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--yellow); z-index: 2000; display: none; flex-direction: column;
-        }
-
-        .note-page {
-            flex: 1; width: 100%; padding: 40px 25px; box-sizing: border-box;
-            background-color: var(--yellow);
-            background-image: linear-gradient(var(--line) 1px, transparent 1px);
-            background-size: 100% 30px;
-            line-height: 30px; font-size: 19px; border: none; outline: none;
-            resize: none; color: #444; font-family: 'Courier New', Courier, monospace;
-        }
-
-        .nav { display: flex; justify-content: space-between; padding: 15px; background: #f9a825; color: white; }
-        .btn { padding: 8px 15px; border: none; border-radius: 6px; background: white; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<div id="note-trigger">📝</div>
-
-<div class="swiper">
-    <div id="gallery-wrapper" class="swiper-wrapper">
-        </div>
-</div>
-
 <div id="note-overlay">
     <div class="nav">
-        <button class="btn" onclick="toggleNotes()">Fertig</button>
-        <div style="line-height: 34px;">Meine Notizen</div>
-        <button class="btn" onclick="addPage()">+ Seite</button>
-    </div>
-    <div id="pages-container" style="display: flex; flex-direction: column; overflow-y: auto; flex: 1;">
+        <button class="btn" onclick="toggleNotes()">Schließen</button>
+        <div id="page-info" style="line-height: 34px;">Seite 1</div>
+        <div class="controls">
+            <button class="btn" onclick="clearCanvas()">Löschen</button>
+            <button class="btn" onclick="addPage()">+ Seite</button>
         </div>
+    </div>
+    <div id="canvas-container" style="flex: 1; position: relative; background: var(--yellow);">
+        <div id="lined-pattern" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; 
+            background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 30px;"></div>
+        <canvas id="noteCanvas"></canvas>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
 <script>
-    // --- 1. AUTOMATISCHE BILDER-SCHLEIFE ---
+    // --- 1. BILDER-SCHLEIFE ---
     const wrapper = document.getElementById('gallery-wrapper');
-    const dateiEndung = ".jpg"; // Hier .png oder .jpg eintragen, je nachdem was du hast
+    const dateiEndung = ".jpg"; 
 
     for (let i = 1; i <= 100; i++) {
-        // Macht aus 1 -> "01", aus 9 -> "09", aus 10 -> "10"
         let nummer = i.toString().padStart(2, '0'); 
-        
         const slide = document.createElement('div');
         slide.className = 'swiper-slide';
-        slide.innerHTML = `
-            <img src="${nummer}${dateiEndung}" alt="Bild ${nummer}" onerror="this.parentElement.style.display='none'">
-            <div class="img-label">Bild ${nummer}</div>
-        `;
+        slide.innerHTML = `<img src="${nummer}${dateiEndung}" alt="Bild ${nummer}" onerror="this.parentElement.style.display='none'">`;
         wrapper.appendChild(slide);
     }
+    const swiper = new Swiper('.swiper', { loop: false });
 
-    const swiper = new Swiper('.swiper', { loop: false, grabCursor: true });
+    // --- 2. ZEICHEN-LOGIK (CANVAS) ---
+    const canvas = document.getElementById('noteCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
 
-    // --- 2. NOTIZEN MIT SPEICHERFUNKTION ---
-    const overlay = document.getElementById('note-overlay');
-    const pagesContainer = document.getElementById('pages-container');
+    // Canvas Größe an das iPad anpassen
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 60; // Abzug der Navigationsleiste
+        loadCanvas(); // Gespeichertes laden
+    }
 
-    // Laden beim Start
-    window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem('myNotes') || '[""]');
-        saved.forEach(text => createNoteElement(text));
-    };
+    window.addEventListener('resize', resizeCanvas);
+    window.onload = resizeCanvas;
 
-    function toggleNotes() {
-        if (overlay.style.display === 'flex') {
-            saveAllNotes();
-            overlay.style.display = 'none';
-        } else {
-            overlay.style.display = 'flex';
+    // Touch-Events für das iPad
+    canvas.addEventListener('touchstart', startDrawing, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+    canvas.addEventListener('touchend', stopDrawing);
+
+    function startDrawing(e) {
+        drawing = true;
+        const touch = e.touches[0];
+        ctx.beginPath();
+        ctx.moveTo(touch.clientX, touch.clientY - 60);
+        e.preventDefault();
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+        const touch = e.touches[0];
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#333'; // Dunkelgraue "Tinte"
+        ctx.lineTo(touch.clientX, touch.clientY - 60);
+        ctx.stroke();
+        e.preventDefault();
+    }
+
+    function stopDrawing() {
+        drawing = false;
+        saveCanvas();
+    }
+
+    function clearCanvas() {
+        if(confirm("Diese Seite wirklich löschen?")) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            saveCanvas();
         }
     }
 
-    function createNoteElement(content = "") {
-        const txt = document.createElement('textarea');
-        txt.className = 'note-page';
-        txt.value = content;
-        txt.placeholder = "Tippe hier...";
-        txt.oninput = saveAllNotes;
-        pagesContainer.appendChild(txt);
+    // --- 3. SPEICHERN & STEUERUNG ---
+    const overlay = document.getElementById('note-overlay');
+
+    function toggleNotes() {
+        overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
+        if(overlay.style.display === 'flex') resizeCanvas();
     }
 
-    function addPage() {
-        createNoteElement();
-        pagesContainer.lastChild.focus();
+    function saveCanvas() {
+        const data = canvas.toDataURL();
+        localStorage.setItem('myHandwrittenNote', data);
     }
 
-    function saveAllNotes() {
-        const allTexts = Array.from(document.querySelectorAll('.note-page')).map(t => t.value);
-        localStorage.setItem('myNotes', JSON.stringify(allTexts));
+    function loadCanvas() {
+        const data = localStorage.getItem('myHandwrittenNote');
+        if (data) {
+            const img = new Image();
+            img.onload = () => ctx.drawImage(img, 0, 0);
+            img.src = data;
+        }
     }
 
     document.getElementById('note-trigger').onclick = toggleNotes;
 </script>
-</body>
-</html>
