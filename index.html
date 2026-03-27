@@ -98,108 +98,53 @@
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
-<script>
-    // --- 1. BILDER LOGIK ---
-    const wrapper = document.getElementById('gallery-wrapper');
-    const moeglicheEndungen = [".png", ".PNG", ".jpg", ".JPG", ".jpeg"];
+// --- OPTIMIERTE TOUCH & PENCIL LOGIK ---
+const getPos = (e) => {
+    const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
+    const touch = e.touches[0];
+    return { x: touch.clientX, y: touch.clientY - offset };
+};
 
-    async function initGallery() {
-        for (let i = 1; i <= 100; i++) {
-            let nummer = i.toString().padStart(2, '0');
-            for (let endung of moeglicheEndungen) {
-                const pfad = `${nummer}${endung}`;
-                const existiert = await new Promise(res => {
-                    const img = new Image(); img.onload = () => res(true); img.onerror = () => res(false); img.src = pfad;
-                });
-                if (existiert) {
-                    const slide = document.createElement('div');
-                    slide.className = 'swiper-slide';
-                    slide.innerHTML = `<img src="${pfad}">`;
-                    wrapper.appendChild(slide);
-                    break; 
-                }
-            }
-        }
-        new Swiper('.swiper-main', { slidesPerView: 2, keyboard: true, grabCursor: true });
+canvas.addEventListener('touchstart', (e) => {
+    // PALM REJECTION:
+    // 1. Wenn mehr als ein Kontaktpunkt da ist (Handballen + Stift), ignorieren wir den Rest.
+    // 2. Wir priorisieren den 'stylus' (Apple Pencil).
+    if (e.touches.length > 1 && e.touches[0].touchType !== 'stylus') {
+        drawing = false;
+        return;
     }
 
-    // --- 2. NOTIZ SEITEN LOGIK ---
-    let pages = JSON.parse(localStorage.getItem('notebook_pages')) || [""];
-    let currentPageIndex = 0;
-    const canvas = document.getElementById('noteCanvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
-
-    function resizeCanvas() {
-        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - offset;
-        drawPage();
-    }
-
-    function drawPage() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const data = pages[currentPageIndex];
-        if (data && data.length > 10) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0);
-            img.src = data;
-        }
-        document.getElementById('current-page-num').innerText = currentPageIndex + 1;
-    }
-
-    function saveCurrentPage() {
-        pages[currentPageIndex] = canvas.toDataURL();
-        localStorage.setItem('notebook_pages', JSON.stringify(pages));
-    }
-
-    // Touch Events
-    const getPos = (e) => {
-        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY - offset };
-    };
-
-    canvas.addEventListener('touchstart', (e) => {
-        drawing = true; ctx.beginPath();
-        const p = getPos(e); ctx.moveTo(p.x, p.y);
-        e.preventDefault();
-    }, {passive:false});
-
-    canvas.addEventListener('touchmove', (e) => {
-        if(!drawing) return;
-        const p = getPos(e);
-        ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#222';
-        ctx.lineTo(p.x, p.y); ctx.stroke();
-        e.preventDefault();
-    }, {passive:false});
-
-    canvas.addEventListener('touchend', () => { drawing = false; saveCurrentPage(); });
-
-    // Navigation
-    function nextPage() { if(currentPageIndex < pages.length - 1) { saveCurrentPage(); currentPageIndex++; drawPage(); } }
-    function prevPage() { if(currentPageIndex > 0) { saveCurrentPage(); currentPageIndex--; drawPage(); } }
-    function addNewPage() { saveCurrentPage(); pages.push(""); currentPageIndex = pages.length - 1; drawPage(); }
-    function clearCurrentPage() { if(confirm("Seite löschen?")) { ctx.clearRect(0,0,canvas.width,canvas.height); saveCurrentPage(); } }
+    drawing = true;
+    ctx.beginPath();
+    const p = getPos(e);
+    ctx.moveTo(p.x, p.y);
     
-    function changeBg(color) {
-        document.getElementById('canvas-container').style.background = color;
-        localStorage.setItem('notebook_bg', color);
-    }
+    // Verhindert das Scrollen der Seite während des Schreibens
+    e.preventDefault(); 
+}, {passive: false});
 
-    function toggleNotes() {
-        const overlay = document.getElementById('note-overlay');
-        const isOpening = overlay.style.display !== 'flex';
-        overlay.style.display = isOpening ? 'flex' : 'none';
-        if(isOpening) {
-            const savedBg = localStorage.getItem('notebook_bg') || '#fffde7';
-            changeBg(savedBg);
-            resizeCanvas();
-        }
-    }
+canvas.addEventListener('touchmove', (e) => {
+    if (!drawing) return;
 
-    document.getElementById('note-trigger').onclick = toggleNotes;
-    window.addEventListener('resize', resizeCanvas);
-    initGallery();
-</script>
+    // Wenn während des Schreibens ein zweiter Finger/Handballen dazu kommt:
+    if (e.touches.length > 1 && e.touches[0].touchType !== 'stylus') return;
+
+    const p = getPos(e);
+    
+    // Strich-Einstellungen für schöneres Schriftbild
+    ctx.lineWidth = (e.touches[0].touchType === 'stylus') ? 2.0 : 2.5; 
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#222';
+    
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    e.preventDefault();
+}, {passive: false});
+
+canvas.addEventListener('touchend', (e) => {
+    drawing = false;
+    saveCurrentPage();
+});
 </body>
 </html>
