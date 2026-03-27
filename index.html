@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Checklist & Notes Ultimate</title>
+    <title>Checklist Ultimate Pro</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     
@@ -21,17 +21,29 @@
             margin: 0; padding: 0; height: 100%; 
             background: #000; overflow: hidden; 
             font-family: -apple-system, sans-serif;
-            touch-action: none; /* Verhindert systemweites Scrollen */
+            touch-action: none;
         }
         
-        /* Galerie */
+        /* Galerie & Scrollbar Design */
         .swiper-main { width: 100%; height: 100%; }
         .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; border-right: 1px solid #222; }
-        .swiper-slide img { max-width: 98%; max-height: 100%; object-fit: contain; }
+        .swiper-slide img { max-width: 98%; max-height: 90%; object-fit: contain; }
 
-        /* Icon */
+        /* Die Scrollbar unten */
+        .swiper-scrollbar {
+            height: 12px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            bottom: 10px !important;
+            border-radius: 10px;
+        }
+        .swiper-scrollbar-drag {
+            background: var(--ui-acc) !important;
+            height: 100%;
+        }
+
+        /* Notiz-Icon */
         #note-trigger {
-            position: fixed; bottom: 40px; right: 30px;
+            position: fixed; bottom: 50px; right: 30px;
             width: 70px; height: 70px; background: #ffd600;
             border-radius: 50%; display: flex; justify-content: center;
             align-items: center; cursor: pointer; z-index: 1000;
@@ -54,27 +66,19 @@
             overflow-x: auto; align-items: center; border-bottom: 1px solid #555;
         }
 
-        .btn { padding: 10px 14px; border: none; border-radius: 8px; background: #eee; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn { padding: 10px 14px; border: none; border-radius: 8px; background: #eee; font-weight: bold; cursor: pointer; }
         .btn-page { background: var(--ui-acc); color: white; min-width: 44px; }
-        .btn-active { outline: 3px solid #fff; transform: scale(1.05); }
+        .btn-active { outline: 3px solid #fff; }
 
-        /* Farbwähler */
-        .color-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; cursor: pointer; flex-shrink: 0; }
+        .color-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; flex-shrink: 0; }
 
-        #canvas-container { 
-            flex: 1; position: relative; 
-            touch-action: none; 
-            background: var(--note-bg); 
-            overflow: hidden;
-        }
+        #canvas-container { flex: 1; position: relative; background: var(--note-bg); }
         #lined-pattern {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
             background-image: linear-gradient(var(--line-color) 1px, transparent 1px);
             background-size: 100% 32px; background-position: 0 10px;
         }
-        canvas { position: absolute; top: 0; left: 0; touch-action: none; }
-        
-        .page-indicator { color: white; font-size: 14px; font-weight: bold; }
+        canvas { position: absolute; top: 0; left: 0; }
     </style>
 </head>
 <body>
@@ -83,12 +87,13 @@
 
 <div class="swiper swiper-main">
     <div id="gallery-wrapper" class="swiper-wrapper"></div>
+    <div class="swiper-scrollbar"></div>
 </div>
 
 <div id="note-overlay">
     <div class="nav-bar">
         <button class="btn" onclick="toggleNotes()">Galerie</button>
-        <div class="page-indicator">Seite <span id="current-page-num">1</span></div>
+        <div style="font-weight:bold">Seite <span id="current-page-num">1</span></div>
         <button class="btn" style="background:#ff5252; color:white;" onclick="clearCurrentPage()">Löschen</button>
     </div>
     
@@ -96,18 +101,13 @@
         <button class="btn btn-page" onclick="prevPage()">◀</button>
         <button class="btn btn-page" onclick="nextPage()">▶</button>
         <button class="btn" onclick="addNewPage()">+ Seite</button>
-        
-        <div style="width: 2px; height: 25px; background: #666; margin: 0 5px;"></div>
-        
-        <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">✏️ Stift</button>
-        <button id="tool-eraser" class="btn" onclick="setTool('eraser')">🧼 Radierer</button>
-        
+        <div style="width: 2px; height: 25px; background: #666;"></div>
+        <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">✏️</button>
+        <button id="tool-eraser" class="btn" onclick="setTool('eraser')">🧼</button>
         <div style="flex:1"></div>
-        
         <div class="color-dot" style="background:#fffde7" onclick="changeBg('#fffde7')"></div>
         <div class="color-dot" style="background:#ffffff" onclick="changeBg('#ffffff')"></div>
         <div class="color-dot" style="background:#e3f2fd" onclick="changeBg('#e3f2fd')"></div>
-        <div class="color-dot" style="background:#e8f5e9" onclick="changeBg('#e8f5e9')"></div>
     </div>
 
     <div id="canvas-container">
@@ -119,10 +119,10 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
 <script>
-    // --- 1. BILDER LOGIK (Multi-Format Support) ---
     const wrapper = document.getElementById('gallery-wrapper');
     const moeglicheEndungen = [".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"];
 
+    // 1. Galerie Initialisierung
     async function initGallery() {
         for (let i = 1; i <= 100; i++) {
             let nummer = i.toString().padStart(2, '0');
@@ -140,14 +140,25 @@
                 }
             }
         }
-        new Swiper('.swiper-main', { slidesPerView: 2, keyboard: true, grabCursor: true });
+        
+        // Swiper mit Scrollbar-Funktion
+        new Swiper('.swiper-main', { 
+            slidesPerView: 2, 
+            keyboard: true, 
+            grabCursor: true,
+            scrollbar: {
+                el: '.swiper-scrollbar',
+                draggable: true,   // Erlaubt das Ziehen des Balkens auf dem iPad
+                hide: false,       // Balken bleibt immer sichtbar
+            },
+            mousewheel: true
+        });
     }
 
-    // --- 2. NOTIZEN & ZEICHEN LOGIK ---
-    let pages = JSON.parse(localStorage.getItem('notebook_pages_v3')) || [""];
+    // 2. Notiz Logik (wie zuvor, inkl. Palm Rejection)
+    let pages = JSON.parse(localStorage.getItem('notebook_v4')) || [""];
     let currentPageIndex = 0;
-    let currentTool = 'pen'; // 'pen' oder 'eraser'
-    
+    let currentTool = 'pen';
     const canvas = document.getElementById('noteCanvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
@@ -170,93 +181,38 @@
         document.getElementById('current-page-num').innerText = currentPageIndex + 1;
     }
 
-    function saveCurrentPage() {
-        pages[currentPageIndex] = canvas.toDataURL();
-        localStorage.setItem('notebook_pages_v3', JSON.stringify(pages));
-    }
-
-    // --- PALM REJECTION & TOUCH EVENTS ---
-    const getPos = (e) => {
-        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        const touch = e.touches[0];
-        return { x: touch.clientX, y: touch.clientY - offset, type: touch.touchType };
-    };
-
     canvas.addEventListener('touchstart', (e) => {
-        // Palm Rejection: Ignoriere Multitouch, außer es ist ein Stylus
         if (e.touches.length > 1 && e.touches[0].touchType !== 'stylus') return;
-        
-        drawing = true;
-        const p = getPos(e);
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
+        drawing = true; ctx.beginPath();
+        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
+        ctx.moveTo(e.touches[0].clientX, e.touches[0].clientY - offset);
         e.preventDefault();
     }, {passive: false});
 
     canvas.addEventListener('touchmove', (e) => {
-        if (!drawing) return;
-        if (e.touches.length > 1 && e.touches[0].touchType !== 'stylus') return;
-
-        const p = getPos(e);
-        
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
+        if (!drawing || (e.touches.length > 1 && e.touches[0].touchType !== 'stylus')) return;
+        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         if (currentTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = 30; // Dickere Fläche zum Radieren
+            ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 40;
         } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = '#222';
-            // Stift ist etwas dünner für präzises Schreiben
-            ctx.lineWidth = (p.type === 'stylus') ? 2.0 : 2.5;
+            ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#222';
+            ctx.lineWidth = (e.touches[0].touchType === 'stylus') ? 2.0 : 2.5;
         }
-        
-        ctx.lineTo(p.x, p.y);
+        ctx.lineTo(e.touches[0].clientX, e.touches[0].clientY - offset);
         ctx.stroke();
         e.preventDefault();
     }, {passive: false});
 
-    canvas.addEventListener('touchend', () => { 
-        drawing = false; 
-        saveCurrentPage(); 
-    });
+    canvas.addEventListener('touchend', () => { drawing = false; pages[currentPageIndex] = canvas.toDataURL(); localStorage.setItem('notebook_v4', JSON.stringify(pages)); });
 
-    // --- NAVIGATION & TOOLS ---
-    function setTool(tool) {
-        currentTool = tool;
-        document.getElementById('tool-pen').classList.toggle('btn-active', tool === 'pen');
-        document.getElementById('tool-eraser').classList.toggle('btn-active', tool === 'eraser');
-    }
+    function setTool(t) { currentTool = t; document.getElementById('tool-pen').classList.toggle('btn-active', t==='pen'); document.getElementById('tool-eraser').classList.toggle('btn-active', t==='eraser'); }
+    function nextPage() { if(currentPageIndex < pages.length-1) { pages[currentPageIndex]=canvas.toDataURL(); currentPageIndex++; drawPage(); } }
+    function prevPage() { if(currentPageIndex > 0) { pages[currentPageIndex]=canvas.toDataURL(); currentPageIndex--; drawPage(); } }
+    function addNewPage() { pages[currentPageIndex]=canvas.toDataURL(); pages.push(""); currentPageIndex = pages.length-1; drawPage(); }
+    function changeBg(c) { document.getElementById('canvas-container').style.background = c; }
+    function toggleNotes() { const o = document.getElementById('note-overlay'); o.style.display = (o.style.display !== 'flex' ? 'flex' : 'none'); if(o.style.display==='flex') resizeCanvas(); }
 
-    function nextPage() { if(currentPageIndex < pages.length - 1) { saveCurrentPage(); currentPageIndex++; drawPage(); } }
-    function prevPage() { if(currentPageIndex > 0) { saveCurrentPage(); currentPageIndex--; drawPage(); } }
-    function addNewPage() { saveCurrentPage(); pages.push(""); currentPageIndex = pages.length - 1; drawPage(); }
-    
-    function clearCurrentPage() { 
-        if(confirm("Diese Seite wirklich komplett löschen?")) { 
-            ctx.clearRect(0,0,canvas.width,canvas.height); 
-            saveCurrentPage(); 
-        } 
-    }
-    
-    function changeBg(color) {
-        document.getElementById('canvas-container').style.background = color;
-        localStorage.setItem('notebook_bg_v3', color);
-    }
-
-    function toggleNotes() {
-        const overlay = document.getElementById('note-overlay');
-        const isOpening = overlay.style.display !== 'flex';
-        overlay.style.display = isOpening ? 'flex' : 'none';
-        if(isOpening) {
-            const savedBg = localStorage.getItem('notebook_bg_v3') || '#fffde7';
-            changeBg(savedBg);
-            resizeCanvas();
-        }
-    }
-
-    // Start
     document.getElementById('note-trigger').onclick = toggleNotes;
     window.addEventListener('resize', resizeCanvas);
     initGallery();
