@@ -211,23 +211,25 @@
 
     function deleteCurrentPage() {
         if (pages.length <= 1) {
-            clearCanvas();
+            // Wenn nur eine Seite da ist, einfach leeren statt löschen
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pages[currentPageIndex].image = "";
+            saveCurrentState();
             return;
         }
-        if (confirm(`Seite ${currentPageIndex + 1} wirklich löschen?`)) {
-            pages.splice(currentPageIndex, 1);
-            currentPageIndex = Math.max(0, currentPageIndex - 1);
-            renderTabs();
-            drawPage();
-            localStorage.setItem('notebook_v6', JSON.stringify(pages));
-        }
+        // In Documents funktionieren Confirms oft nicht, daher löschen wir hier direkt
+        pages.splice(currentPageIndex, 1);
+        currentPageIndex = Math.max(0, currentPageIndex - 1);
+        renderTabs();
+        drawPage();
+        localStorage.setItem('notebook_v6', JSON.stringify(pages));
     }
 
     function clearCanvas() {
-        if(confirm("Fläche dieser Seite leeren?")) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            saveCurrentState();
-        }
+        // Direktes Löschen ohne confirm-Abfrage für Documents-Kompatibilität
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pages[currentPageIndex].image = ""; // Wichtig: Auch im Array leeren
+        saveCurrentState();
     }
 
     // --- TOUCH EVENTS ---
