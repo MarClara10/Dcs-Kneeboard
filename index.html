@@ -110,32 +110,51 @@
 
 <script>
     // ==========================================
-    // --- 1. GALERIE SETUP (.PNG Bilder) ---
-    // ==========================================
-    const wrapper = document.getElementById('gallery-wrapper');
-    
-    // !!! WICHTIG: Hier ist die Endung auf .png gesetzt !!!
-    const dateiEndung = ".png"; 
+// --- 1. INTELLIGENTER BILDER-LOADER ---
+// ==========================================
+const wrapper = document.getElementById('gallery-wrapper');
+const moeglicheEndungen = [".png", ".PNG", ".jpg", ".JPG", ".jpeg"];
 
-    // Schleife für Bilder 01.png bis 100.png
+async function ladeBilder() {
     for (let i = 1; i <= 100; i++) {
-        let nummer = i.toString().padStart(2, '0'); // Macht 01, 02...
-        
+        let nummer = i.toString().padStart(2, '0');
+        let bildGefunden = false;
+
+        // Wir erstellen einen Container für das Bild (Slide)
         const slide = document.createElement('div');
         slide.className = 'swiper-slide';
-        slide.innerHTML = `
-            <img src="${nummer}${dateiEndung}" 
-                 alt="Bild ${nummer}" 
-                 onerror="this.parentElement.style.display='none';">`;
-        wrapper.appendChild(slide);
-    }
+        
+        // Wir probieren jede Endung aus, bis eine funktioniert
+        for (let endung of moeglicheEndungen) {
+            const pfad = `${nummer}${endung}`;
+            
+            // Kleiner Trick: Wir prüfen kurz, ob das Bild existiert
+            const checkImg = new Image();
+            const existiert = await new Promise(resolve => {
+                checkImg.onload = () => resolve(true);
+                checkImg.onerror = () => resolve(false);
+                checkImg.src = pfad;
+            });
 
-    // Initialisiere Swiper (Wisch-Effekt)
+            if (existiert) {
+                slide.innerHTML = `<img src="${pfad}" alt="Bild ${nummer}">`;
+                wrapper.appendChild(slide);
+                bildGefunden = true;
+                break; // Gefunden! Nächste Nummer...
+            }
+        }
+    }
+    
+    // Swiper erst initialisieren, wenn die Bilder geladen sind
     const swiper = new Swiper('.swiper', {
         loop: false,
         grabCursor: true,
         keyboard: true,
     });
+}
+
+// Starte den Ladevorgang
+ladeBilder();
 
     // ==========================================
     // --- 2. HANDSCHRIFT SETUP (Pencil/Finger) ---
