@@ -3,43 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DCS Kneeboard & Notes</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>DCS Checklist & Notes Pro</title>
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
     <style>
         :root { 
             --dark-ui: #1a1a1a;
             --accent-gold: #fbc02d;
             --line-color: rgba(0,0,0,0.12); 
         }
+        
         body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, sans-serif; touch-action: none; }
         
+        /* Gallery & Scrollbar Logic */
         .swiper-main { width: 100%; height: 100%; }
-        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; }
-        .swiper-slide img { max-width: 100%; max-height: 90%; object-fit: contain; }
+        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; border-right: 1px solid #222; }
+        .swiper-slide img { max-width: 98%; max-height: 90%; object-fit: contain; }
         
-        /* Scrollbar: Small look, huge touch area */
+        /* Invisible large touch area, visible thin line */
         .swiper-scrollbar { 
-            height: 40px !important; /* Huge area to grab */
+            height: 40px !important; 
             background: transparent !important; 
             bottom: 5px !important; 
             display: flex;
             align-items: center;
         }
-        /* This is the actual visible thin line */
         .swiper-scrollbar-drag { 
             height: 4px !important; 
             background: var(--accent-gold) !important;
             border-radius: 2px;
         }
 
+        /* Trigger Icon */
         #note-trigger {
             position: fixed; bottom: 50px; right: 30px;
             width: 70px; height: 70px; background: #2c2c2c;
             border-radius: 20px; display: flex; justify-content: center;
-            align-items: center; z-index: 1000; border: 2px solid var(--accent-gold);
+            align-items: center; cursor: pointer; z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6); 
+            border: 2px solid var(--accent-gold);
         }
         #note-trigger svg { width: 35px; height: 35px; fill: #ffd700; }
 
+        /* Note Overlay */
         #note-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2000; display: none; flex-direction: column;
@@ -53,19 +62,26 @@
         .btn { 
             padding: 12px 18px; border: none; border-radius: 10px; background: #444; color: white; 
             font-weight: bold; cursor: pointer; font-size: 16px; min-height: 50px;
+            display: flex; align-items: center; justify-content: center;
         }
         .btn-add { background: #388e3c; }
-        .btn-del-page { background: #d32f2f; }
+        .btn-del-page { background: #d32f2f; min-width: 50px; }
         .btn-active { background: var(--accent-gold); color: black; }
+        .btn-undo { background: #555; }
 
         #bg-picker-container { display: flex; align-items: center; gap: 8px; color: white; font-size: 14px; }
-        #bg-picker { width: 45px; height: 45px; border-radius: 8px; border: 2px solid #666; background: none; }
+        #bg-picker { width: 45px; height: 45px; border: 2px solid #666; border-radius: 8px; background: none; cursor: pointer; padding: 0; }
 
-        #tab-container { display: flex; gap: 8px; overflow-x: auto; flex: 1; }
+        #tab-container { display: flex; gap: 8px; overflow-x: auto; flex: 1; scrollbar-width: none; }
         .tab { padding: 12px 20px; background: #333; color: #fff; border-radius: 10px; border: none; font-size: 15px; white-space: nowrap; }
         .tab.active { background: var(--accent-gold); color: #000; font-weight: bold; }
 
         #canvas-container { flex: 1; position: relative; }
+        #lined-pattern {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background-image: linear-gradient(var(--line-color) 1px, transparent 1px);
+            background-size: 100% 32px; background-position: 0 10px;
+        }
         canvas { position: absolute; top: 0; left: 0; }
     </style>
 </head>
@@ -91,27 +107,31 @@
     <div class="tool-bar">
         <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">Pen</button>
         <button id="tool-eraser" class="btn" onclick="setTool('eraser')">Eraser</button>
-        <button class="btn" onclick="undo()">Undo</button>
+        <button class="btn btn-undo" onclick="undo()">Undo</button>
         <button class="btn" onclick="clearCanvas()">Clear All</button>
+        
         <div style="flex:1"></div>
+        
         <div id="bg-picker-container">
-            <span>BG Color:</span>
+            <span>BG:</span>
             <input type="color" id="bg-picker" value="#ffeb3b" oninput="changePageColor(this.value)">
         </div>
     </div>
 
     <div id="canvas-container">
+        <div id="lined-pattern"></div>
         <canvas id="noteCanvas"></canvas>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
 <script>
     const wrapper = document.getElementById('gallery-wrapper');
     const moeglicheEndungen = [".png", ".jpg", ".jpeg", ".PNG", ".JPG"];
 
     async function initGallery() {
-        for (let i = 1; i <= 50; i++) {
+        for (let i = 1; i <= 100; i++) {
             let nummer = i.toString().padStart(2, '0');
             for (let endung of moeglicheEndungen) {
                 const pfad = `${nummer}${endung}`;
@@ -119,8 +139,10 @@
                     const img = new Image(); img.onload = () => res(true); img.onerror = () => res(false); img.src = pfad;
                 });
                 if (existiert) {
-                    const slide = document.createElement('div'); slide.className = 'swiper-slide';
-                    slide.innerHTML = `<img src="${pfad}">`; wrapper.appendChild(slide);
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+                    slide.innerHTML = `<img src="${pfad}">`;
+                    wrapper.appendChild(slide);
                     break; 
                 }
             }
@@ -128,7 +150,8 @@
         new Swiper('.swiper-main', { slidesPerView: 2, scrollbar: { el: '.swiper-scrollbar', draggable: true } });
     }
 
-    let pages = JSON.parse(localStorage.getItem('dcs_notes_v8')) || [{ image: "", color: "#ffeb3b" }];
+    // --- NOTE LOGIC ---
+    let pages = JSON.parse(localStorage.getItem('dcs_notes_v9')) || [{ image: "", color: "#ffeb3b" }];
     let currentPageIndex = 0;
     let currentTool = 'pen';
     let historyStack = [];
@@ -161,28 +184,40 @@
         const page = pages[currentPageIndex];
         document.getElementById('canvas-container').style.background = page.color || "#ffeb3b";
         document.getElementById('bg-picker').value = page.color || "#ffeb3b";
+        
         if (page.image && page.image.length > 100) {
-            const img = new Image(); img.onload = () => { ctx.drawImage(img, 0, 0); saveToHistory(); };
+            const img = new Image();
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                saveToHistory();
+            };
             img.src = page.image;
-        } else { saveToHistory(); }
+        } else {
+            saveToHistory();
+        }
     }
 
     function saveCurrentState() {
         pages[currentPageIndex].image = canvas.toDataURL();
-        localStorage.setItem('dcs_notes_v8', JSON.stringify(pages));
+        localStorage.setItem('dcs_notes_v9', JSON.stringify(pages));
     }
 
     function saveToHistory() {
         historyStack.push(canvas.toDataURL());
-        if (historyStack.length > 20) historyStack.shift();
+        if (historyStack.length > 30) historyStack.shift();
     }
 
     function undo() {
         if (historyStack.length > 1) {
             historyStack.pop();
+            const previous = historyStack[historyStack.length - 1];
             const img = new Image();
-            img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0); saveCurrentState(); };
-            img.src = historyStack[historyStack.length - 1];
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                saveCurrentState();
+            };
+            img.src = previous;
         }
     }
 
@@ -206,17 +241,22 @@
             currentPageIndex = Math.max(0, currentPageIndex - 1);
             historyStack = [];
             resizeCanvas();
-            localStorage.setItem('dcs_notes_v8', JSON.stringify(pages));
-        } else { clearCanvas(); }
+            localStorage.setItem('dcs_notes_v9', JSON.stringify(pages));
+        } else {
+            clearCanvas();
+        }
     }
 
     function clearCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        saveCurrentState(); saveToHistory();
+        saveCurrentState();
+        saveToHistory();
     }
 
+    // --- TOUCH EVENTS ---
     canvas.addEventListener('touchstart', (e) => {
-        drawing = true; ctx.beginPath();
+        drawing = true; 
+        ctx.beginPath();
         const rect = canvas.getBoundingClientRect();
         ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
         e.preventDefault();
@@ -231,9 +271,16 @@
         ctx.strokeStyle = '#111';
         ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
         ctx.stroke();
+        e.preventDefault();
     }, {passive: false});
 
-    canvas.addEventListener('touchend', () => { if(drawing) { drawing = false; saveCurrentState(); saveToHistory(); } });
+    canvas.addEventListener('touchend', () => { 
+        if(drawing) {
+            drawing = false; 
+            saveCurrentState(); 
+            saveToHistory();
+        }
+    });
 
     function setTool(t) { 
         currentTool = t; 
