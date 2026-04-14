@@ -3,93 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Checklist & Notes Pro</title>
-    
+    <title>DCS Checklist & Notes Pro</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    
     <style>
         :root { 
-            --default-yellow: #ffeb3b; 
-            --oliv-green: #6b8e23;
-            --line-color: rgba(0,0,0,0.12); 
             --dark-ui: #1a1a1a;
             --accent-gold: #fbc02d;
         }
-        
         body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, sans-serif; touch-action: none; }
         
-        /* Galerie */
+        /* Galerie & Riesige Scrollbar */
         .swiper-main { width: 100%; height: 100%; }
-        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; border-right: 1px solid #222; }
-        .swiper-slide img { max-width: 98%; max-height: 90%; object-fit: contain; }
-        .swiper-scrollbar { height: 8px !important; background: rgba(255, 255, 255, 0.1) !important; bottom: 5px !important; }
+        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; }
+        .swiper-slide img { max-width: 100%; max-height: 90%; object-fit: contain; }
+        
+        /* Treffsichere Scrollbar */
+        .swiper-scrollbar { 
+            height: 30px !important; 
+            background: rgba(255, 255, 255, 0.15) !important; 
+            bottom: 10px !important; 
+            border-radius: 15px !important;
+        }
         .swiper-scrollbar-drag { background: var(--accent-gold) !important; }
 
-        /* Professionelles Notiz-Icon */
+        /* Notiz-Overlay & Große Buttons */
         #note-trigger {
-            position: fixed; bottom: 40px; right: 30px;
-            width: 60px; height: 60px; background: #2c2c2c;
-            border-radius: 16px; display: flex; justify-content: center;
-            align-items: center; cursor: pointer; z-index: 1000;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6); 
-            border: 1px solid rgba(255,215,0,0.4);
-            transition: transform 0.2s;
+            position: fixed; bottom: 50px; right: 30px;
+            width: 70px; height: 70px; background: #2c2c2c;
+            border-radius: 20px; display: flex; justify-content: center;
+            align-items: center; z-index: 1000; border: 2px solid var(--accent-gold);
         }
-        #note-trigger svg { width: 30px; height: 30px; fill: #ffd700; }
-        #note-trigger:active { transform: scale(0.9); }
-
-        /* Notiz-Overlay */
-        #note-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 2000; display: none; flex-direction: column;
-        }
+        #note-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; flex-direction: column; }
         
-        .nav-bar {
-            display: flex; gap: 8px; align-items: center;
-            padding: env(safe-area-inset-top) 12px 5px 12px; background: var(--dark-ui);
+        .nav-bar, .tool-bar { display: flex; gap: 12px; padding: 10px; background: var(--dark-ui); align-items: center; }
+        .btn { 
+            padding: 12px 20px; border: none; border-radius: 10px; background: #444; color: white; 
+            font-weight: bold; font-size: 16px; cursor: pointer; min-height: 50px;
         }
-
-        #tab-container {
-            display: flex; gap: 4px; overflow-x: auto; flex: 1;
-            scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        }
-        #tab-container::-webkit-scrollbar { display: none; }
-        
-        .tab {
-            padding: 8px 14px; background: #333; color: #888; border-radius: 8px 8px 0 0;
-            font-size: 13px; white-space: nowrap; cursor: pointer; border: none; min-width: 80px;
-        }
-        .tab.active { background: #444; color: #fff; font-weight: bold; border-bottom: 2px solid var(--accent-gold); }
-
-        .tool-bar {
-            display: flex; gap: 10px; padding: 10px 15px; background: #2a2a2a; 
-            align-items: center; border-bottom: 1px solid #444;
-        }
-
-        .btn { padding: 8px 12px; border: none; border-radius: 8px; background: #444; color: white; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .btn-add { background: #388e3c; }
-        .btn-del-page { background: #d32f2f; }
         .btn-active { background: var(--accent-gold); color: black; }
+        
+        /* Farbwähler */
+        #bg-picker { width: 50px; height: 50px; border: none; background: none; cursor: pointer; }
 
-        .color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0; cursor: pointer; }
-        .color-dot.active { border-color: #fff; transform: scale(1.1); }
-
-        #canvas-container { flex: 1; position: relative; transition: background 0.2s; }
-        #lined-pattern {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-            background-image: linear-gradient(var(--line-color) 1px, transparent 1px);
-            background-size: 100% 32px; background-position: 0 10px;
-        }
+        #canvas-container { flex: 1; position: relative; }
         canvas { position: absolute; top: 0; left: 0; }
+        #tab-container { display: flex; gap: 8px; overflow-x: auto; flex: 1; }
+        .tab { padding: 10px 18px; background: #333; color: #fff; border-radius: 8px; border: none; font-size: 15px; }
+        .tab.active { background: var(--accent-gold); color: #000; }
     </style>
 </head>
 <body>
 
-<div id="note-trigger">
-    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-</div>
+<div id="note-trigger"><svg width="40" height="40" viewBox="0 0 24 24" fill="#ffd700"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg></div>
 
 <div class="swiper swiper-main">
     <div id="gallery-wrapper" class="swiper-wrapper"></div>
@@ -100,59 +65,45 @@
     <div class="nav-bar">
         <button class="btn" onclick="toggleNotes()">Galerie</button>
         <div id="tab-container"></div>
-        <button class="btn btn-add" onclick="addNewPage()">+ Seite</button>
-        <button class="btn btn-del-page" onclick="deleteCurrentPage()" title="Seite löschen">✕</button>
+        <button class="btn" style="background:#388e3c" onclick="addNewPage()">+ Seite</button>
     </div>
     
     <div class="tool-bar">
-        <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">✏️ Stift</button>
-        <button id="tool-eraser" class="btn" onclick="setTool('eraser')">🧼 Radierer</button>
-        <button class="btn" onclick="clearCanvas()">Fläche leeren</button>
-        
+        <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">✏️</button>
+        <button id="tool-eraser" class="btn" onclick="setTool('eraser')">🧼</button>
+        <button class="btn" onclick="undo()">↩️ Zurück</button>
+        <button class="btn" onclick="clearCanvas()">🗑️ Leeren</button>
         <div style="flex:1"></div>
-        
-        <div class="color-dot" style="background:#ffeb3b" onclick="changePageColor('#ffeb3b')"></div>
-        <div class="color-dot" style="background:#ffffff" onclick="changePageColor('#ffffff')"></div>
-        <div class="color-dot" style="background:#2196f3" onclick="changePageColor('#2196f3')"></div>
-        <div class="color-dot" style="background:#6b8e23" onclick="changePageColor('#6b8e23')"></div>
+        <label style="color:white; font-size:12px">BG:</label>
+        <input type="color" id="bg-picker" value="#ffeb3b" oninput="changePageColor(this.value)">
     </div>
 
     <div id="canvas-container">
-        <div id="lined-pattern"></div>
         <canvas id="noteCanvas"></canvas>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
 <script>
-    const wrapper = document.getElementById('gallery-wrapper');
-    const moeglicheEndungen = [".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"];
-
+    // Galerie Init (wie gehabt)
     async function initGallery() {
-        for (let i = 1; i <= 100; i++) {
-            let nummer = i.toString().padStart(2, '0');
-            for (let endung of moeglicheEndungen) {
-                const pfad = `${nummer}${endung}`;
-                const existiert = await new Promise(res => {
-                    const img = new Image(); img.onload = () => res(true); img.onerror = () => res(false); img.src = pfad;
-                });
-                if (existiert) {
-                    const slide = document.createElement('div');
-                    slide.className = 'swiper-slide';
-                    slide.innerHTML = `<img src="${pfad}">`;
-                    wrapper.appendChild(slide);
-                    break; 
-                }
+        const wrapper = document.getElementById('gallery-wrapper');
+        for (let i = 1; i <= 50; i++) {
+            let p = i.toString().padStart(2, '0') + ".png";
+            const img = new Image(); img.src = p;
+            const exist = await new Promise(r => { img.onload=()=>r(true); img.onerror=()=>r(false); });
+            if (exist) {
+                const s = document.createElement('div'); s.className='swiper-slide';
+                s.innerHTML=`<img src="${p}">`; wrapper.appendChild(s);
             }
         }
-        new Swiper('.swiper-main', { slidesPerView: 2, scrollbar: { el: '.swiper-scrollbar', draggable: true } });
+        new Swiper('.swiper-main', { scrollbar: { el: '.swiper-scrollbar', draggable: true } });
     }
 
-    // --- NOTIZ-LOGIK ---
-    // Struktur: [{ image: "data...", color: "#ffeb3b" }]
-    let pages = JSON.parse(localStorage.getItem('notebook_v6')) || [{ image: "", color: "#ffeb3b" }];
+    // Notiz Logik mit Undo
+    let pages = JSON.parse(localStorage.getItem('dcs_notes_v7')) || [{ image: "", color: "#ffeb3b" }];
     let currentPageIndex = 0;
+    let history = []; 
     let currentTool = 'pen';
     const canvas = document.getElementById('noteCanvas');
     const ctx = canvas.getContext('2d');
@@ -162,116 +113,105 @@
         const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight - offset;
-        renderTabs();
         drawPage();
+        renderTabs();
     }
 
     function renderTabs() {
-        const container = document.getElementById('tab-container');
-        container.innerHTML = "";
-        pages.forEach((_, index) => {
-            const t = document.createElement('button');
-            t.className = `tab ${index === currentPageIndex ? 'active' : ''}`;
-            t.innerText = `Seite ${index + 1}`;
-            t.onclick = () => { saveCurrentState(); currentPageIndex = index; drawPage(); renderTabs(); };
-            container.appendChild(t);
+        const c = document.getElementById('tab-container'); c.innerHTML = "";
+        pages.forEach((_, i) => {
+            const b = document.createElement('button'); b.className=`tab ${i===currentPageIndex?'active':''}`;
+            b.innerText=`S.${i+1}`; b.onclick=()=>{ saveCurrentState(); currentPageIndex=i; drawPage(); renderTabs(); };
+            c.appendChild(b);
         });
     }
 
     function drawPage() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const page = pages[currentPageIndex];
-        document.getElementById('canvas-container').style.background = page.color || "#ffeb3b";
-        
-        if (page.image && page.image.length > 100) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0);
-            img.src = page.image;
+        const p = pages[currentPageIndex];
+        document.getElementById('canvas-container').style.background = p.color;
+        document.getElementById('bg-picker').value = p.color;
+        if (p.image) {
+            const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0); img.src = p.image;
         }
+        history = [canvas.toDataURL()]; // Reset history for new page
     }
 
     function saveCurrentState() {
         pages[currentPageIndex].image = canvas.toDataURL();
-        localStorage.setItem('notebook_v6', JSON.stringify(pages));
+        localStorage.setItem('dcs_notes_v7', JSON.stringify(pages));
     }
 
-    function changePageColor(color) {
-        pages[currentPageIndex].color = color;
-        document.getElementById('canvas-container').style.background = color;
+    function undo() {
+        if (history.length > 1) {
+            history.pop();
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                saveCurrentState();
+            };
+            img.src = history[history.length - 1];
+        }
+    }
+
+    function changePageColor(c) {
+        pages[currentPageIndex].color = c;
+        document.getElementById('canvas-container').style.background = c;
         saveCurrentState();
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        saveCurrentState();
+        history = [canvas.toDataURL()];
     }
 
     function addNewPage() {
         saveCurrentState();
         pages.push({ image: "", color: "#ffeb3b" });
         currentPageIndex = pages.length - 1;
-        renderTabs();
-        drawPage();
+        resizeCanvas();
     }
 
-    function deleteCurrentPage() {
-        if (pages.length <= 1) {
-            // Wenn nur eine Seite da ist, einfach leeren statt löschen
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            pages[currentPageIndex].image = "";
-            saveCurrentState();
-            return;
-        }
-        // In Documents funktionieren Confirms oft nicht, daher löschen wir hier direkt
-        pages.splice(currentPageIndex, 1);
-        currentPageIndex = Math.max(0, currentPageIndex - 1);
-        renderTabs();
-        drawPage();
-        localStorage.setItem('notebook_v6', JSON.stringify(pages));
-    }
-
-    function clearCanvas() {
-        // Direktes Löschen ohne confirm-Abfrage für Documents-Kompatibilität
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        pages[currentPageIndex].image = ""; // Wichtig: Auch im Array leeren
-        saveCurrentState();
-    }
-
-    // --- TOUCH EVENTS ---
+    // Touch Handling
     canvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1 && e.touches[0].touchType !== 'stylus') return;
         drawing = true; ctx.beginPath();
-        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        ctx.moveTo(e.touches[0].clientX, e.touches[0].clientY - offset);
-        e.preventDefault();
-    }, {passive: false});
+        const rect = canvas.getBoundingClientRect();
+        ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+    });
 
     canvas.addEventListener('touchmove', (e) => {
-        if (!drawing || (e.touches.length > 1 && e.touches[0].touchType !== 'stylus')) return;
-        const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        if (currentTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 40;
-        } else {
-            ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#111';
-            ctx.lineWidth = (e.touches[0].touchType === 'stylus') ? 2.0 : 2.5;
-        }
-        ctx.lineTo(e.touches[0].clientX, e.touches[0].clientY - offset);
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineCap = 'round'; ctx.lineWidth = (currentTool === 'eraser' ? 40 : 3);
+        ctx.globalCompositeOperation = (currentTool === 'eraser' ? 'destination-out' : 'source-over');
+        ctx.strokeStyle = '#000';
+        ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
         ctx.stroke();
         e.preventDefault();
-    }, {passive: false});
+    });
 
-    canvas.addEventListener('touchend', () => { drawing = false; saveCurrentState(); });
+    canvas.addEventListener('touchend', () => { 
+        drawing = false; 
+        history.push(canvas.toDataURL());
+        if(history.length > 20) history.shift(); // Limit history
+        saveCurrentState(); 
+    });
 
     function setTool(t) { 
         currentTool = t; 
-        document.getElementById('tool-pen').classList.toggle('btn-active', t==='pen'); 
-        document.getElementById('tool-eraser').classList.toggle('btn-active', t==='eraser'); 
+        document.getElementById('tool-pen').className = (t==='pen' ? 'btn btn-active' : 'btn');
+        document.getElementById('tool-eraser').className = (t==='eraser' ? 'btn btn-active' : 'btn');
     }
 
-    function toggleNotes() { 
-        const o = document.getElementById('note-overlay'); 
-        o.style.display = (o.style.display !== 'flex' ? 'flex' : 'none'); 
-        if(o.style.display==='flex') resizeCanvas(); 
+    function toggleNotes() {
+        const o = document.getElementById('note-overlay');
+        o.style.display = (o.style.display === 'flex' ? 'none' : 'flex');
+        if(o.style.display === 'flex') resizeCanvas();
     }
 
     document.getElementById('note-trigger').onclick = toggleNotes;
-    window.addEventListener('resize', resizeCanvas);
     initGallery();
 </script>
 </body>
