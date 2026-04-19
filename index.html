@@ -5,61 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>DCS Checklist & Notes Pro</title>
-    
+    <title>DCS Kneeboard Pro v11</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    
     <style>
         :root { 
             --dark-ui: #1a1a1a;
             --accent-gold: #fbc02d;
-            --line-color: rgba(0,0,0,0.12); 
-            --lasso-color: rgba(0, 122, 255, 0.5);
+            --line-color: rgba(0,0,0,0.1); 
         }
-        
         body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, sans-serif; touch-action: none; }
         
+        /* Gallery */
         .swiper-main { width: 100%; height: 100%; }
-        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; border-right: 1px solid #222; }
+        .swiper-slide { display: flex; justify-content: center; align-items: center; background: #000; }
         .swiper-slide img { max-width: 98%; max-height: 90%; object-fit: contain; }
-        
         .swiper-scrollbar { height: 40px !important; background: transparent !important; bottom: 5px !important; display: flex; align-items: center; }
-        .swiper-scrollbar-drag { height: 4px !important; background: var(--accent-gold) !important; border-radius: 2px; }
+        .swiper-scrollbar-drag { height: 6px !important; background: var(--accent-gold) !important; border-radius: 3px; }
 
         #note-trigger {
-            position: fixed; bottom: 50px; right: 30px;
-            width: 70px; height: 70px; background: #2c2c2c;
-            border-radius: 20px; display: flex; justify-content: center;
-            align-items: center; cursor: pointer; z-index: 1000;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6); 
-            border: 2px solid var(--accent-gold);
+            position: fixed; bottom: 50px; right: 30px; width: 70px; height: 70px; 
+            background: #2c2c2c; border-radius: 20px; display: flex; justify-content: center;
+            align-items: center; cursor: pointer; z-index: 1000; border: 2px solid var(--accent-gold);
         }
-        #note-trigger svg { width: 35px; height: 35px; fill: #ffd700; }
 
-        #note-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; flex-direction: column; }
+        #note-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; flex-direction: column; background: #000; }
         .nav-bar, .tool-bar { display: flex; gap: 8px; align-items: center; padding: env(safe-area-inset-top) 15px 10px 15px; background: var(--dark-ui); flex-wrap: wrap; }
 
-        .btn { padding: 10px 15px; border: none; border-radius: 10px; background: #444; color: white; font-weight: bold; cursor: pointer; font-size: 14px; min-height: 45px; }
-        .btn-add { background: #388e3c; }
-        .btn-del-page { background: #d32f2f; }
+        .btn { padding: 8px 12px; border: none; border-radius: 8px; background: #444; color: white; font-weight: bold; cursor: pointer; font-size: 13px; min-height: 44px; }
         .btn-active { background: var(--accent-gold); color: black; }
+        .btn-undo { background: #555; min-width: 44px; }
+        .btn-add { background: #388e3c; }
 
-        #bg-picker-container { display: flex; align-items: center; gap: 5px; color: white; font-size: 12px; }
-        #bg-picker { width: 40px; height: 40px; border: 2px solid #666; border-radius: 8px; background: none; }
-
-        #tab-container { display: flex; gap: 8px; overflow-x: auto; flex: 1; scrollbar-width: none; }
-        .tab { padding: 10px 15px; background: #333; color: #fff; border-radius: 8px; border: none; font-size: 14px; white-space: nowrap; }
+        #tab-container { display: flex; gap: 5px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+        .tab { padding: 8px 12px; background: #333; color: #fff; border-radius: 6px; border: none; white-space: nowrap; }
         .tab.active { background: var(--accent-gold); color: #000; font-weight: bold; }
 
         #canvas-container { flex: 1; position: relative; overflow: hidden; }
-        #lined-pattern { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: linear-gradient(var(--line-color) 1px, transparent 1px); background-size: 100% 32px; background-position: 0 10px; }
-        canvas { position: absolute; top: 0; left: 0; outline: none; }
-        #selectionCanvas { pointer-events: none; } /* Layer for the blue lasso line */
+        #lined-pattern { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: linear-gradient(var(--line-color) 1px, transparent 1px); background-size: 100% 32px; background-position: 0 10px; z-index: 1; }
+        canvas { position: absolute; top: 0; left: 0; outline: none; z-index: 2; }
+        #tempCanvas { z-index: 3; pointer-events: none; } /* Layer for Lasso selection & moving */
     </style>
 </head>
 <body>
 
-<div id="note-trigger"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg></div>
+<div id="note-trigger"><svg width="30" height="30" viewBox="0 0 24 24" fill="#ffd700"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg></div>
 
 <div class="swiper swiper-main">
     <div id="gallery-wrapper" class="swiper-wrapper"></div>
@@ -70,34 +59,32 @@
     <div class="nav-bar">
         <button class="btn" onclick="toggleNotes()">Gallery</button>
         <div id="tab-container"></div>
-        <button class="btn btn-add" onclick="addNewPage()">Add Page</button>
-        <button class="btn btn-del-page" onclick="deleteCurrentPage()">Del</button>
+        <button class="btn btn-add" onclick="addNewPage()">+ Page</button>
+        <button class="btn" style="background:#d32f2f" onclick="deleteCurrentPage()">Del</button>
     </div>
     
     <div class="tool-bar">
         <button id="tool-pen" class="btn btn-active" onclick="setTool('pen')">Pen</button>
         <button id="tool-eraser" class="btn" onclick="setTool('eraser')">Eraser</button>
         <button id="tool-lasso" class="btn" onclick="setTool('lasso')">Lasso</button>
-        <button class="btn" onclick="undo()">Undo</button>
+        <div style="width: 10px;"></div>
+        <button class="btn btn-undo" onclick="undo()">Undo</button>
+        <button class="btn btn-undo" onclick="redo()">Redo</button>
         <button class="btn" onclick="clearCanvas()">Clear All</button>
         <div style="flex:1"></div>
-        <div id="bg-picker-container">
-            <span>BG:</span>
-            <input type="color" id="bg-picker" value="#ffeb3b" oninput="changePageColor(this.value)">
-        </div>
+        <input type="color" id="bg-picker" value="#ffeb3b" oninput="changePageColor(this.value)" style="width:40px; height:40px; border:none; border-radius:5px;">
     </div>
 
     <div id="canvas-container">
         <div id="lined-pattern"></div>
         <canvas id="noteCanvas"></canvas>
-        <canvas id="selectionCanvas"></canvas>
+        <canvas id="tempCanvas"></canvas>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
 <script>
-    // Gallery init (unchanged)
+    // Init Gallery
     const wrapper = document.getElementById('gallery-wrapper');
     const moeglicheEndungen = [".png", ".jpg", ".jpeg", ".PNG", ".JPG"];
     async function initGallery() {
@@ -117,30 +104,33 @@
         new Swiper('.swiper-main', { slidesPerView: 2, scrollbar: { el: '.swiper-scrollbar', draggable: true } });
     }
 
-    let pages = JSON.parse(localStorage.getItem('dcs_notes_v10')) || [{ image: "", color: "#ffeb3b" }];
+    // App State
+    let pages = JSON.parse(localStorage.getItem('dcs_notes_v11')) || [{ image: "", color: "#ffeb3b" }];
     let currentPageIndex = 0;
     let currentTool = 'pen';
-    let historyStack = [];
     
+    // History (Undo/Redo)
+    let historyStack = [];
+    let redoStack = [];
+
     const canvas = document.getElementById('noteCanvas');
     const ctx = canvas.getContext('2d');
-    const sCanvas = document.getElementById('selectionCanvas');
-    const sCtx = sCanvas.getContext('2d');
+    const tCanvas = document.getElementById('tempCanvas');
+    const tCtx = tCanvas.getContext('2d');
     
     let drawing = false;
-    let lassoPoints = [];
-    let selectionData = null;
-    let selectionRect = null;
     let isMovingSelection = false;
+    let selectionData = null; 
+    let selectionRect = null;
     let dragStart = { x: 0, y: 0 };
 
     function resizeCanvas() {
         const offset = document.querySelector('.nav-bar').offsetHeight + document.querySelector('.tool-bar').offsetHeight;
-        [canvas, sCanvas].forEach(c => {
+        [canvas, tCanvas].forEach(c => {
             c.width = window.innerWidth;
             c.height = window.innerHeight - offset;
         });
-        drawPage();
+        loadCurrentPage();
         renderTabs();
     }
 
@@ -151,61 +141,90 @@
             const t = document.createElement('button');
             t.className = `tab ${index === currentPageIndex ? 'active' : ''}`;
             t.innerText = `P${index + 1}`;
-            t.onclick = () => { saveCurrentState(); currentPageIndex = index; drawPage(); renderTabs(); };
+            t.onclick = () => { switchPage(index); };
             container.appendChild(t);
         });
     }
 
-    function drawPage() {
+    function saveToStorage() {
+        pages[currentPageIndex].image = canvas.toDataURL();
+        localStorage.setItem('dcs_notes_v11', JSON.stringify(pages));
+    }
+
+    function switchPage(index) {
+        saveToStorage();
+        currentPageIndex = index;
+        historyStack = [];
+        redoStack = [];
+        loadCurrentPage();
+        renderTabs();
+    }
+
+    function loadCurrentPage() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const page = pages[currentPageIndex];
         document.getElementById('canvas-container').style.background = page.color || "#ffeb3b";
         document.getElementById('bg-picker').value = page.color || "#ffeb3b";
         if (page.image && page.image.length > 100) {
             const img = new Image();
-            img.onload = () => { ctx.drawImage(img, 0, 0); saveToHistory(); };
+            img.onload = () => { ctx.drawImage(img, 0, 0); addToHistory(); };
             img.src = page.image;
-        } else { saveToHistory(); }
+        } else { addToHistory(); }
     }
 
-    function saveCurrentState() {
-        pages[currentPageIndex].image = canvas.toDataURL();
-        localStorage.setItem('dcs_notes_v10', JSON.stringify(pages));
-    }
-
-    function saveToHistory() {
+    function addToHistory() {
         historyStack.push(canvas.toDataURL());
-        if (historyStack.length > 30) historyStack.shift();
+        if (historyStack.length > 40) historyStack.shift();
+        redoStack = []; // Reset Redo on new action
     }
 
     function undo() {
         if (historyStack.length > 1) {
-            historyStack.pop();
-            const img = new Image();
-            img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0); saveCurrentState(); };
-            img.src = historyStack[historyStack.length - 1];
+            redoStack.push(historyStack.pop());
+            applyHistoryState(historyStack[historyStack.length - 1]);
         }
     }
 
-    // --- LASSO & TOUCH LOGIC ---
+    function redo() {
+        if (redoStack.length > 0) {
+            const state = redoStack.pop();
+            historyStack.push(state);
+            applyHistoryState(state);
+        }
+    }
+
+    function applyHistoryState(dataURL) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            saveToStorage();
+        };
+        img.src = dataURL;
+    }
+
+    // --- INTERACTION LOGIC ---
     canvas.addEventListener('touchstart', (e) => {
         const rect = canvas.getBoundingClientRect();
         const x = e.touches[0].clientX - rect.left;
         const y = e.touches[0].clientY - rect.top;
 
-        if (currentTool === 'lasso' && selectionData && x > selectionRect.x && x < selectionRect.x + selectionRect.w && y > selectionRect.y && y < selectionRect.y + selectionRect.h) {
-            isMovingSelection = true;
-            dragStart = { x, y };
-            return;
+        if (currentTool === 'lasso' && selectionData) {
+            if (x > selectionRect.x && x < selectionRect.x + selectionRect.w && y > selectionRect.y && y < selectionRect.y + selectionRect.h) {
+                isMovingSelection = true;
+                dragStart = { x, y };
+                return;
+            } else {
+                finalizeLasso(); // Drop selection if tapped outside
+            }
         }
 
         drawing = true;
-        if (currentTool === 'lasso') {
-            finalizeSelection(); // Clear old selection if new one starts
-            lassoPoints = [{x, y}];
-        } else {
+        if (currentTool !== 'lasso') {
             ctx.beginPath();
             ctx.moveTo(x, y);
+        } else {
+            dragStart = { x, y }; // Start of selection box
         }
         e.preventDefault();
     }, {passive: false});
@@ -218,30 +237,24 @@
         if (isMovingSelection) {
             const dx = x - dragStart.x;
             const dy = y - dragStart.y;
-            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-            sCtx.putImageData(selectionData, selectionRect.x + dx, selectionRect.y + dy);
-            // Draw a dashed border while moving
-            sCtx.setLineDash([5, 5]);
-            sCtx.strokeStyle = 'rgba(0,122,255,0.8)';
-            sCtx.strokeRect(selectionRect.x + dx, selectionRect.y + dy, selectionRect.w, selectionRect.h);
+            tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+            tCtx.putImageData(selectionData, selectionRect.x + dx, selectionRect.y + dy);
+            tCtx.setLineDash([5, 5]);
+            tCtx.strokeStyle = '#007aff';
+            tCtx.strokeRect(selectionRect.x + dx, selectionRect.y + dy, selectionRect.w, selectionRect.h);
             return;
         }
 
         if (!drawing) return;
 
         if (currentTool === 'lasso') {
-            lassoPoints.push({x, y});
-            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-            sCtx.beginPath();
-            sCtx.strokeStyle = '#007aff';
-            sCtx.lineWidth = 2;
-            sCtx.setLineDash([5, 5]);
-            sCtx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
-            lassoPoints.forEach(p => sCtx.lineTo(p.x, p.y));
-            sCtx.stroke();
+            tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+            tCtx.setLineDash([5, 5]);
+            tCtx.strokeStyle = '#007aff';
+            tCtx.strokeRect(dragStart.x, dragStart.y, x - dragStart.x, y - dragStart.y);
         } else {
             ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            ctx.lineWidth = (currentTool === 'eraser' ? 45 : 2.5);
+            ctx.lineWidth = (currentTool === 'eraser' ? 40 : 2.5);
             ctx.globalCompositeOperation = (currentTool === 'eraser' ? 'destination-out' : 'source-over');
             ctx.strokeStyle = '#111';
             ctx.lineTo(x, y);
@@ -254,69 +267,76 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.changedTouches[0].clientX - rect.left;
             const y = e.changedTouches[0].clientY - rect.top;
-            const dx = x - dragStart.x;
-            const dy = y - dragStart.y;
-            
-            // Draw moved content to main canvas
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.putImageData(selectionData, selectionRect.x + dx, selectionRect.y + dy);
-            
+            selectionRect.x += (x - dragStart.x);
+            selectionRect.y += (y - dragStart.y);
             isMovingSelection = false;
-            selectionData = null;
-            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-            saveCurrentState();
-            saveToHistory();
             return;
         }
 
         if (!drawing) return;
         drawing = false;
 
-        if (currentTool === 'lasso' && lassoPoints.length > 3) {
-            // Create selection
-            const xs = lassoPoints.map(p => p.x);
-            const ys = lassoPoints.map(p => p.y);
-            const minX = Math.min(...xs), maxX = Math.max(...xs);
-            const minY = Math.min(...ys), maxY = Math.max(...ys);
-            const w = maxX - minX, h = maxY - minY;
+        if (currentTool === 'lasso') {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.changedTouches[0].clientX - rect.left;
+            const y = e.changedTouches[0].clientY - rect.top;
+            
+            const x1 = Math.min(dragStart.x, x), y1 = Math.min(dragStart.y, y);
+            const w = Math.abs(x - dragStart.x), h = Math.abs(y - dragStart.y);
 
-            if (w > 1 && h > 1) {
-                selectionRect = { x: minX, y: minY, w, h };
-                selectionData = ctx.getImageData(minX, minY, w, h);
-                // Cut from main canvas
-                ctx.clearRect(minX, minY, w, h);
-                // Draw to selection layer
-                sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-                sCtx.putImageData(selectionData, minX, minY);
-                sCtx.strokeStyle = '#007aff';
-                sCtx.strokeRect(minX, minY, w, h);
+            if (w > 5 && h > 5) {
+                selectionRect = { x: x1, y: y1, w, h };
+                selectionData = ctx.getImageData(x1, y1, w, h);
+                ctx.clearRect(x1, y1, w, h); // Cut from main
+                tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+                tCtx.putImageData(selectionData, x1, y1);
+                tCtx.strokeStyle = '#007aff';
+                tCtx.strokeRect(x1, y1, w, h);
             }
         } else {
-            saveCurrentState();
-            saveToHistory();
+            saveToStorage();
+            addToHistory();
         }
     });
 
-    function finalizeSelection() {
+    function finalizeLasso() {
         if (selectionData) {
+            ctx.globalCompositeOperation = 'source-over';
             ctx.putImageData(selectionData, selectionRect.x, selectionRect.y);
             selectionData = null;
-            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+            tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+            saveToStorage();
+            addToHistory();
         }
     }
 
     function setTool(t) { 
-        finalizeSelection();
+        if (currentTool === 'lasso') finalizeLasso();
         currentTool = t; 
-        document.getElementById('tool-pen').classList.toggle('btn-active', t==='pen'); 
-        document.getElementById('tool-eraser').classList.toggle('btn-active', t==='eraser'); 
-        document.getElementById('tool-lasso').classList.toggle('btn-active', t==='lasso'); 
+        document.querySelectorAll('.tool-bar .btn').forEach(b => b.classList.remove('btn-active'));
+        document.getElementById('tool-' + t).classList.add('btn-active');
     }
 
-    function changePageColor(color) { pages[currentPageIndex].color = color; document.getElementById('canvas-container').style.background = color; saveCurrentState(); }
-    function addNewPage() { saveCurrentState(); pages.push({ image: "", color: "#ffeb3b" }); currentPageIndex = pages.length - 1; historyStack = []; resizeCanvas(); }
-    function deleteCurrentPage() { if (pages.length > 1) { pages.splice(currentPageIndex, 1); currentPageIndex = Math.max(0, currentPageIndex - 1); historyStack = []; resizeCanvas(); localStorage.setItem('dcs_notes_v10', JSON.stringify(pages)); } else { clearCanvas(); } }
-    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height); selectionData = null; saveCurrentState(); saveToHistory(); }
+    function changePageColor(color) { pages[currentPageIndex].color = color; document.getElementById('canvas-container').style.background = color; saveToStorage(); }
+    
+    function addNewPage() { 
+        finalizeLasso(); 
+        saveToStorage();
+        pages.push({ image: "", color: "#ffeb3b" });
+        currentPageIndex = pages.length - 1;
+        resizeCanvas();
+    }
+
+    function deleteCurrentPage() {
+        if (pages.length > 1) {
+            pages.splice(currentPageIndex, 1);
+            currentPageIndex = Math.max(0, currentPageIndex - 1);
+            resizeCanvas();
+            saveToStorage();
+        } else { clearCanvas(); }
+    }
+
+    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height); selectionData = null; saveToStorage(); addToHistory(); }
     function toggleNotes() { const o = document.getElementById('note-overlay'); o.style.display = (o.style.display !== 'flex' ? 'flex' : 'none'); if(o.style.display==='flex') resizeCanvas(); }
 
     document.getElementById('note-trigger').onclick = toggleNotes;
